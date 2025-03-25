@@ -1,6 +1,4 @@
--- Current sql file was generated after introspecting the database
--- If you want to run this migration please uncomment this code before executing migrations
-/*
+
 CREATE TABLE "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"username" varchar(100) NOT NULL,
@@ -31,4 +29,3 @@ CREATE TABLE "vaults_configurations" (
 --> statement-breakpoint
 ALTER TABLE "vaults" ADD CONSTRAINT "fk_id_user" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "vaults_configurations" ADD CONSTRAINT "fk_nfc_keys" FOREIGN KEY ("nfc_key_id") REFERENCES "public"."nfc_keys"("id") ON DELETE no action ON UPDATE no action;
-*/

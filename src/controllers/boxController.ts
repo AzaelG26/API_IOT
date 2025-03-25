@@ -11,12 +11,12 @@ const createbox = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        console.log("req.userId:", req.userId); // Depura aquí
+        console.log("req.userId:", req.userId);
 
         const newBox = await db.insert(vaults).values({
             nickname: nickname,
             status: true,
-            userId: req.userId // Usamos el id del token
+            userId: req.userId
         }).returning();
 
         if (!newBox) {
@@ -33,4 +33,8 @@ const createbox = async (req: Request, res: Response): Promise<void> => {
         res.status(500).json({ msg: "Server Error" });
     }
 };
+
+    const showBoxByUserId = async (req: Request, res: Response): Promise<void> => {
+        
+    }
 export { createbox };
