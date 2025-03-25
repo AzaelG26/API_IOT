@@ -47,8 +47,9 @@ const createbox = async (req: Request, res: Response): Promise<void> => {
                 return;
             }
             const findBoxById = await db.query.vaults.findFirst({
-                where: (vaults, {eq}) => eq(vaults.id, id)
+                where: (vaults, {eq}) => eq(vaults.userId, id)
             });
+
             if (!findBoxById) {
                 res.status(404).json({msg: "Box not found"});
                 return;
