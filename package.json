@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "test": "ts-node app.ts",
-    "start": "ts-node app.ts"
+    "start": "ts-node app.ts",
+    "migrate": "npx drizzle-kit migrate"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

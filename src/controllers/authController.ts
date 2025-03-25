@@ -33,11 +33,12 @@ const loginController = async (req: Request, res: Response): Promise<void> => {
         }
         const token = jwt.sign({
             id: user.id,
-            email: user.username
+            email: user.email
         }, process.env.JWT_SECRET as string, {expiresIn: '1h'});
 
         res.status(200).json({
             msg: "User authenticated successfully",
+            usr: user,
             tkn: token
         });
     }catch(err){

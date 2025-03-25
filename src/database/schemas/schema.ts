@@ -16,7 +16,7 @@ export const vaults = pgTable("vaults", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	nickname: varchar({ length: 50 }).notNull(),
 	status: boolean().default(true),
-	userId: uuid("user_id"),
+	userId: uuid("user_id").notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.userId],

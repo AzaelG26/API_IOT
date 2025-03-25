@@ -5,9 +5,14 @@ import { vaults } from "../database/schemas";
 const createbox = async (req: Request, res: Response): Promise<void> => {
     try {
         const { nickname } = req.body;
+        const  userId  = req.userId;
 
         if (!nickname) {
             res.status(400).json({ msg: "nickname is required" });
+            return;
+        }
+        if (!userId) {
+            res.status(400).json({ msg: "userId is required" });
             return;
         }
 
@@ -16,7 +21,7 @@ const createbox = async (req: Request, res: Response): Promise<void> => {
         const newBox = await db.insert(vaults).values({
             nickname: nickname,
             status: true,
-            userId: req.userId
+            userId: userId
         }).returning();
 
         if (!newBox) {
