@@ -27,7 +27,6 @@ export const verificarToken = (req: Request, res: Response, next: NextFunction) 
         }
         res.status(403).json({ msg: "Token inválido o expirado" });
         return;
-
     }
 };
 
