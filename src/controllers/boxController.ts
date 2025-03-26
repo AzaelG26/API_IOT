@@ -39,28 +39,27 @@ const createbox = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
-    const showBoxByUserId = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const {id} = req.params;
-            if (!id) {
-                res.status(400).json({msg: "id is required"});
-                return;
-            }
-            const findBoxById = await db.query.vaults.findFirst({
-                where: (vaults, {eq}) => eq(vaults.userId, id)
-            });
-
-            if (!findBoxById) {
-                res.status(404).json({msg: "Box not found"});
-                return;
-            }
-            res.status(200).json({
-                msg: "Box found",
-                box: findBoxById
-            });
-        }catch(err) {
-            res.status(500).json({ msg: "Server Error", err });
-            console.log(err);
+const showBoxByUserId = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const {id} = req.params;
+        if (!id) {
+            res.status(400).json({msg: "id is required"});
+            return;
         }
+        const findBoxById = await db.query.vaults.findFirst({
+            where: (vaults, {eq}) => eq(vaults.userId, id)
+        });
+        if (!findBoxById) {
+            res.status(404).json({msg: "Box not found"});
+            return;
+        }
+        res.status(200).json({
+            msg: "Box found",
+            box: findBoxById
+        });
+    }catch(err) {
+        res.status(500).json({ msg: "Server Error", err });
+        console.log(err);
     }
+}
 export { createbox, showBoxByUserId };
