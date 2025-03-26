@@ -35,11 +35,17 @@ export const nfc_keys = pgTable("nfc_keys", {
 export const vaults_configurations = pgTable("vaults_configurations", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	pin: integer().notNull(),
-	nfcKeyId: uuid("nfc_key_id"),
+	nfcKeyId: uuid("nfc_key_id").notNull(),
+	vaultId: uuid("vault_id").notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.nfcKeyId],
 			foreignColumns: [nfc_keys.id],
 			name: "fk_nfc_keys"
 		}),
+	foreignKey({
+		columns: [table.vaultId],
+		foreignColumns: [vaults.id],
+		name: "fk_vaults",
+	})
 ]);
