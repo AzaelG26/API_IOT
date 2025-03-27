@@ -21,6 +21,10 @@ export const verificarToken = (req: Request, res: Response, next: NextFunction) 
         next();
     } catch (error) {
         console.log("Error en verificación:", error); // Depura el error
+        if (error instanceof jwt.TokenExpiredError) {
+             res.status(401).json({ msg: "Token expirado. Por favor, inicie sesión de nuevo." });
+             return;
+        }
         res.status(403).json({ msg: "Token inválido o expirado" });
         return;
     }
