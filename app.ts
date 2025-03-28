@@ -4,7 +4,8 @@ import cors from "cors";
 import mqtt from "mqtt";
 import auth from "./src/routes/auth";
 import box from "./src/routes/box";
-import { handleMqttMessage } from "./src/controllers/boxController"; // Importar el manejador
+import userRoutes from "./src/routes/userRoutes";
+import { handleMqttMessage } from "./src/controllers/boxController"; 
 
 dotenv.config();
 const app = express();
@@ -14,8 +15,8 @@ app.use(express.json());
 
 app.use("/api/auth", auth);
 app.use("/api/box", box);
+app.use("/api/user", userRoutes);
 
-// Conexión MQTT
 const mqttClient = mqtt.connect({
     host: "3.12.151.30", // IP del broker MQTT
     port: 1883,
@@ -42,5 +43,4 @@ app.listen(process.env.PORT, () => {
     console.log(`Server is running on port ${process.env.PORT}`);
 });
 
-// Exportar mqttClient si necesitas usarlo en otros módulos
 export { mqttClient };

@@ -66,6 +66,40 @@ const showBoxByUserId = async (req: Request, res: Response): Promise<void> => {
     }
 };
 
+const updateVaultPin = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { vaultId, newPin } = req.body;
+        const userId = req.userId;
+
+        if (!vaultId || !newPin) {
+            res.status(400).json({ msg: "vaultId and newPin are required" });
+            return;
+        }
+
+        const vault = await db.query.vaults.findFirst({
+            where: (vaults, { eq }) => eq(vaults.id, vaultId),
+        });
+
+        if (!vault) {
+            res.status(404).json({ msg: "Vault not found" });
+            return;
+        }
+
+        if (vault.userId !== userId) {
+            res.status(403).json({ msg: "Unauthorized" });
+            return;
+        }
+
+        await db.update(vaults_configurations)
+            .set({ pin: parseInt(newPin) })
+            .where(eq(vaults_configurations.vaultId, vaultId));
+
+        res.status(200).json({ msg: "Vault PIN updated successfully" });
+    } catch (err) {
+        res.status(500).json({ msg: "Server Error", err });
+    }
+};
+
 const handleMqttMessage = async (topic: string, message: Buffer): Promise<void> => {
     if (topic === "vault/nfc/register") {
         const data = JSON.parse(message.toString());
@@ -132,4 +166,4 @@ const handleMqttMessage = async (topic: string, message: Buffer): Promise<void> 
     }
 };
 
-export { createbox, showBoxByUserId, handleMqttMessage };
+export { createbox, showBoxByUserId, updateVaultPin, handleMqttMessage };
