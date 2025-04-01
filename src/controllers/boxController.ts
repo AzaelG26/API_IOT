@@ -48,7 +48,7 @@ const showBoxByUserId = async (req: Request, res: Response): Promise<void> => {
             res.status(400).json({ msg: "id is required" });
             return;
         }
-        const findBoxById = await db.query.vaults.findFirst({
+        const findBoxById = await db.query.vaults.findMany({
             where: (vaults, { eq }) => eq(vaults.userId, id),
         });
 
@@ -68,11 +68,16 @@ const showBoxByUserId = async (req: Request, res: Response): Promise<void> => {
 
 const updateVaultPin = async (req: Request, res: Response): Promise<void> => {
     try {
+        console.log("Received Request: ", req.body);
         const { vaultId, newPin } = req.body;
         const userId = req.userId;
 
         if (!vaultId || !newPin) {
             res.status(400).json({ msg: "vaultId and newPin are required" });
+            return;
+        }
+        if (newPin.length < 4 || newPin.length > 4) {
+            res.status(400).json({msg: "vaultId must be greater than 4 digits"});
             return;
         }
 
@@ -90,11 +95,21 @@ const updateVaultPin = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
+        const existingConfig = await db.query.vaults_configurations.findFirst({
+            where: (vaults_configurations, { eq }) => eq(vaults_configurations.vaultId, vaultId),
+        });
+
+        if (!existingConfig) {
+            res.status(404).json({ msg: "Configuration not found for this vault" });
+            return;
+        }
+
         await db.update(vaults_configurations)
             .set({ pin: parseInt(newPin) })
             .where(eq(vaults_configurations.vaultId, vaultId));
 
         res.status(200).json({ msg: "Vault PIN updated successfully" });
+
     } catch (err) {
         res.status(500).json({ msg: "Server Error", err });
     }
