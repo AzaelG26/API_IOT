@@ -19,7 +19,7 @@ app.use("/api/user", user)
 
 // Conexión MQTT
 const mqttClient = mqtt.connect({
-    host: "3.14.129.17", // IP del broker MQTT
+    host: "18.117.12.2", // IP del broker MQTT
     port: 1883,
     username: "admin", // Opcional
     password: "password123", // Opcional
