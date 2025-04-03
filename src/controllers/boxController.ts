@@ -20,11 +20,14 @@ const createbox = async (req: Request, res: Response): Promise<void> => {
 
     console.log("req.userId:", req.userId);
 
-    const newBox = await db.insert(vaults).values({
-      nickname: nickname,
-      status: true,
-      userId: userId,
-    }).returning();
+    const newBox = await db
+      .insert(vaults)
+      .values({
+        nickname: nickname,
+        status: true,
+        userId: userId,
+      })
+      .returning();
 
     if (!newBox) {
       res.status(401).json({ msg: "Error creating box" });
@@ -68,10 +71,21 @@ const showBoxByUserId = async (req: Request, res: Response): Promise<void> => {
 
 const handleMqttMessage = async (topic: string, message: Buffer): Promise<void> => {
   if (topic === "vault/nfc/register") {
-    const data = JSON.parse(message.toString());
-    const { tag_id: tagId, pin } = data;
+    console.log(`Procesando mensaje en ${topic} a las ${Date.now()}ms`);
+    let data;
+    try {
+      data = JSON.parse(message.toString());
+      console.log("Mensaje recibido vía MQTT:", data);
+    } catch (err) {
+      console.error("Error al parsear el mensaje JSON:", err);
+      mqttClient.publish("vault/response", "INVALID", (err) => {
+        if (err) console.error("Error al enviar INVALID:", err);
+        else console.log("Respuesta INVALID enviada por error de parsing a las " + Date.now() + "ms");
+      });
+      return; // Salir de la función si el parsing falla
+    }
 
-    console.log("Mensaje recibido vía MQTT:", data);
+    const { tag_id: tagId, pin } = data;
 
     try {
       let isValid = false;
@@ -83,12 +97,11 @@ const handleMqttMessage = async (topic: string, message: Buffer): Promise<void> 
           .from(nfc_keys)
           .where(eq(nfc_keys.tagId, tagId))
           .limit(1);
-
+        console.log("Resultado consulta NFC:", existingNfc);
         if (existingNfc.length > 0) {
           console.log("Tag ID válido:", tagId);
           isValid = true;
         } else {
-          // Opcional: Insertar nuevo tag_id si no existe
           const nfcResult = await db
             .insert(nfc_keys)
             .values({ tagId })
@@ -99,37 +112,36 @@ const handleMqttMessage = async (topic: string, message: Buffer): Promise<void> 
 
       // Validar pin si está presente
       if (pin) {
+        const parsedPin = parseInt(pin); // Convertir a entero para coincidir con DB
+        console.log("Buscando PIN en DB:", pin, "como entero:", parsedPin);
         const config = await db
           .select({ pin: vaults_configurations.pin })
           .from(vaults_configurations)
-          .where(eq(vaults_configurations.pin, parseInt(pin)))
+          .where(eq(vaults_configurations.pin, parsedPin))
           .limit(1);
-
+        console.log("Resultado consulta PIN:", config);
         if (config.length > 0) {
           console.log("PIN válido:", pin);
           isValid = true;
+        } else {
+          console.log("PIN no encontrado en DB");
         }
       }
 
-      // Enviar respuesta según la validación
-      if (isValid) {
-        mqttClient.publish("vault/response", "VALID", (err) => {
-          if (err) console.error("Error al enviar VALID:", err);
-          else console.log("Respuesta VALID enviada");
-        });
-      } else {
-        mqttClient.publish("vault/response", "INVALID", (err) => {
-          if (err) console.error("Error al enviar INVALID:", err);
-          else console.log("Respuesta INVALID enviada");
-        });
-      }
+      // Enviar una única respuesta
+      const response = isValid ? "VALID" : "INVALID";
+      console.log("Resultado final de isValid:", isValid);
+      mqttClient.publish("vault/response", response, (err) => {
+        if (err) console.error(`Error al enviar ${response}:`, err);
+        else console.log(`Respuesta ${response} enviada a las ${Date.now()}ms`);
+      });
     } catch (err) {
       console.error("Error al procesar mensaje MQTT:", err);
       mqttClient.publish("vault/response", "INVALID", (err) => {
         if (err) console.error("Error al enviar INVALID:", err);
+        else console.log("Respuesta INVALID enviada por error a las " + Date.now() + "ms");
       });
     }
   }
 };
-
 export { createbox, showBoxByUserId, handleMqttMessage };
