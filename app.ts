@@ -57,6 +57,9 @@ mqttClient.on("connect", () => {
 
 // Limpiar manejadores previos y registrar el manejador una sola vez
 mqttClient.removeAllListeners("message");
+
+let latestDht11Data = { temperatura: null, humedad: null };
+
 mqttClient.on("message", (topic, message) => {
     handleMqttMessage(topic, message); // Delegar al controlador original
 
