@@ -4,7 +4,8 @@ import cors from "cors";
 import mqtt from "mqtt";
 import auth from "./src/routes/auth";
 import box from "./src/routes/box";
-import { handleMqttMessage } from "./src/controllers/boxController"; 
+import user from "./src/routes/userRoutes"
+import { handleMqttMessage } from "./src/controllers/boxController";
 
 dotenv.config();
 const app = express();
@@ -14,6 +15,7 @@ app.use(express.json());
 
 app.use("/api/auth", auth);
 app.use("/api/box", box);
+app.use("/api/user", user)
 
 // Conexión MQTT
 const mqttClient = mqtt.connect({
@@ -56,41 +58,53 @@ mqttClient.on("connect", () => {
 // Limpiar manejadores previos y registrar el manejador una sola vez
 mqttClient.removeAllListeners("message");
 mqttClient.on("message", (topic, message) => {
-  handleMqttMessage(topic, message);
+    handleMqttMessage(topic, message); // Delegar al controlador original
 
-  if (topic === "sensor/dht11/data") {
-    try {
-      const data = JSON.parse(message.toString());
-      console.log("Datos del sensor recibidos:", {
-        temperatura: data.temperatura,
-        humedad: data.humedad,
-      });
-    } catch (error) {
-      console.error("Error al procesar los datos del sensor:", error);
-    }
-  }
+    // Manejo del tópico para el sensor DHT11
+    mqttClient.on("message", (topic, message) => {
+        if (topic === "sensor/dht11/data") {
+            try {
+                const data = JSON.parse(message.toString());
+                latestDht11Data = { temperatura: data.temperatura, humedad: data.humedad };
+                console.log("Últimos datos del sensor actualizados:", latestDht11Data);
+            } catch (error) {
+                console.error("Error al procesar los datos del sensor:", error);
+            }
+        }
+    });
 
-  if (topic === "sensor/ultrasonic/object_in") {
-    try {
-      const data = JSON.parse(message.toString());
-      console.log("Mensaje del sensor ultrasónico (entrada):", data.estado);
-    } catch (error) {
-      console.error("Error al procesar el mensaje de sensor/ultrasonic/object_in:", error);
+    // Manejo del tópico para el sensor ultrasónico de entrada
+    if (topic === "sensor/ultrasonic/object_in") {
+        try {
+            const data = JSON.parse(message.toString());
+            console.log("Mensaje del sensor ultrasónico (entrada):", data.estado);
+        } catch (error) {
+            console.error("Error al procesar el mensaje de sensor/ultrasonic/object_in:", error);
+        }
     }
-  }
 
-  if (topic === "sensor/ultrasonic/object_out") {
-    try {
-      const data = JSON.parse(message.toString());
-      console.log("Mensaje del sensor ultrasónico (salida):", data.estado);
-    } catch (error) {
-      console.error("Error al procesar el mensaje de sensor/ultrasonic/object_out:", error);
+    // Manejo del tópico para el sensor ultrasónico de salida
+    if (topic === "sensor/ultrasonic/object_out") {
+        try {
+            const data = JSON.parse(message.toString());
+            console.log("Mensaje del sensor ultrasónico (salida):", data.estado);
+        } catch (error) {
+            console.error("Error al procesar el mensaje de sensor/ultrasonic/object_out:", error);
+        }
     }
-  }
 });
 
+app.get("/api/sensor/dht11", (req, res) => {
+    if (latestDht11Data.temperatura !== null && latestDht11Data.humedad !== null) {
+        res.json(latestDht11Data);
+    } else {
+        res.status(404).json({ msg: "No hay datos disponibles aún" });
+    }
+});
+
+
 app.listen(process.env.PORT, () => {
-  console.log(`Server is running on port ${process.env.PORT}`);
+    console.log(`Server is running on port ${process.env.PORT}`);
 });
 
 export { mqttClient };

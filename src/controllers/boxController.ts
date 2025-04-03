@@ -5,68 +5,114 @@ import { eq } from "drizzle-orm";
 import { mqttClient } from "../../app";
 
 const createbox = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { nickname } = req.body;
-    const userId = req.userId;
+    try {
+        const { nickname } = req.body;
+        const userId = req.userId;
 
-    if (!nickname) {
-      res.status(400).json({ msg: "nickname is required" });
-      return;
+        if (!nickname) {
+            res.status(400).json({ msg: "nickname is required" });
+            return;
+        }
+        if (!userId) {
+            res.status(400).json({ msg: "userId is required" });
+            return;
+        }
+
+        console.log("req.userId:", req.userId);
+
+        const newBox = await db.insert(vaults).values({
+            nickname: nickname,
+            status: true,
+            userId: userId,
+        }).returning();
+
+        if (!newBox) {
+            res.status(401).json({ msg: "Error creating box" });
+            return;
+        }
+
+        res.status(200).json({
+            msg: "Box created successfully",
+            box: newBox,
+        });
+        console.log("Box created successfully");
+    } catch (err) {
+        res.status(500).json({ msg: "Server Error" });
     }
-    if (!userId) {
-      res.status(400).json({ msg: "userId is required" });
-      return;
-    }
-
-    console.log("req.userId:", req.userId);
-
-    const newBox = await db
-      .insert(vaults)
-      .values({
-        nickname: nickname,
-        status: true,
-        userId: userId,
-      })
-      .returning();
-
-    if (!newBox) {
-      res.status(401).json({ msg: "Error creating box" });
-      return;
-    }
-
-    res.status(200).json({
-      msg: "Box created successfully",
-      box: newBox,
-    });
-    console.log("Box created successfully");
-  } catch (err) {
-    res.status(500).json({ msg: "Server Error" });
-  }
 };
 
 const showBoxByUserId = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    if (!id) {
-      res.status(400).json({ msg: "id is required" });
-      return;
-    }
-    const findBoxById = await db.query.vaults.findFirst({
-      where: (vaults, { eq }) => eq(vaults.userId, id),
-    });
+    try {
+        const { id } = req.params;
+        if (!id) {
+            res.status(400).json({ msg: "id is required" });
+            return;
+        }
+        const findBoxById = await db.query.vaults.findMany({
+            where: (vaults, { eq }) => eq(vaults.userId, id),
+        });
 
-    if (!findBoxById) {
-      res.status(404).json({ msg: "Box not found" });
-      return;
+        if (!findBoxById) {
+            res.status(404).json({ msg: "Box not found" });
+            return;
+        }
+        res.status(200).json({
+            msg: "Box found",
+            box: findBoxById,
+        });
+    } catch (err) {
+        res.status(500).json({ msg: "Server Error", err });
+        console.log(err);
     }
-    res.status(200).json({
-      msg: "Box found",
-      box: findBoxById,
-    });
-  } catch (err) {
-    res.status(500).json({ msg: "Server Error", err });
-    console.log(err);
-  }
+};
+
+const updateVaultPin = async (req: Request, res: Response): Promise<void> => {
+    try {
+        console.log("Received Request: ", req.body);
+        const { vaultId, newPin } = req.body;
+        const userId = req.userId;
+
+        if (!vaultId || !newPin) {
+            res.status(400).json({ msg: "vaultId and newPin are required" });
+            return;
+        }
+        if (newPin.length < 4 || newPin.length > 4) {
+            res.status(400).json({msg: "vaultId must be greater than 4 digits"});
+            return;
+        }
+
+        const vault = await db.query.vaults.findFirst({
+            where: (vaults, { eq }) => eq(vaults.id, vaultId),
+        });
+
+        if (!vault) {
+            res.status(404).json({ msg: "Vault not found" });
+            return;
+        }
+
+        if (vault.userId !== userId) {
+            res.status(403).json({ msg: "Unauthorized" });
+            return;
+        }
+
+        const existingConfig = await db.query.vaults_configurations.findFirst({
+            where: (vaults_configurations, { eq }) => eq(vaults_configurations.vaultId, vaultId),
+        });
+
+        if (!existingConfig) {
+            res.status(404).json({ msg: "Configuration not found for this vault" });
+            return;
+        }
+
+        await db.update(vaults_configurations)
+            .set({ pin: parseInt(newPin) })
+            .where(eq(vaults_configurations.vaultId, vaultId));
+
+        res.status(200).json({ msg: "Vault PIN updated successfully" });
+
+    } catch (err) {
+        res.status(500).json({ msg: "Server Error", err });
+    }
 };
 
 const handleMqttMessage = async (topic: string, message: Buffer): Promise<void> => {
@@ -87,8 +133,8 @@ const handleMqttMessage = async (topic: string, message: Buffer): Promise<void> 
 
     const { tag_id: tagId, pin } = data;
 
-    try {
-      let isValid = false;
+        try {
+            let isValid = false;
 
       // Validar tag_id si está presente
       if (tagId) {
@@ -144,4 +190,5 @@ const handleMqttMessage = async (topic: string, message: Buffer): Promise<void> 
     }
   }
 };
-export { createbox, showBoxByUserId, handleMqttMessage };
+
+export { createbox, showBoxByUserId, updateVaultPin, handleMqttMessage };
